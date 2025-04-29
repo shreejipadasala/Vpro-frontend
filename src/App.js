@@ -6,6 +6,13 @@ axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 axios.defaults.withCredentials = true;
 
+// Add the getCookie function at the top level
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+};
+
 function App() {
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
@@ -76,9 +83,10 @@ function App() {
     formData.append("file", file);
 
     try {
-      const response = await axios.post(`${API_BASE}/upload_file/`, formData, {
+      const response = await axios.post(`${API_BASE}/upload_file`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'multipart/form-data',
+          'X-CSRFToken': getCookie('csrftoken')
         }
       });
       
@@ -91,7 +99,7 @@ function App() {
       generateGraph(response.data.categories[0] || "", initialYColumns, "line");
       
       try {
-        const recResponse = await axios.post(`${API_BASE}/get_recommendations/`, {
+        const recResponse = await axios.post(`${API_BASE}/get_recommendations`, {
           columns: response.data.categories
         });
         const mappedRecs = allChartTypes.map(chart => {
@@ -147,7 +155,7 @@ function App() {
     setErrorMessage("");
 
     try {
-      const response = await axios.post(`${API_BASE}/generate_graph/`, {
+      const response = await axios.post(`${API_BASE}/generate_graph`, {
         graph_type: type,
         x_column: xCol,
         y_columns: yCols,
@@ -155,7 +163,10 @@ function App() {
         color_all: applyAll,
         download: download
       }, {
-        responseType: download ? 'blob' : 'json'
+        responseType: download ? 'blob' : 'json',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        }
       });
 
       if (download) {
