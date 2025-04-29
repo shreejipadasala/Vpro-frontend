@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import axios from "axios";
 import "./App.css";
+import api from './api'; 
 
 axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
@@ -14,7 +15,6 @@ const getCookie = (name) => {
 };
 
 function App() {
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
   const [file, setFile] = useState(null);
   const [graphType, setGraphType] = useState("line");
@@ -83,7 +83,7 @@ function App() {
     formData.append("file", file);
 
     try {
-      const response = await axios.post(`${API_BASE}/upload_file`, formData, {
+      const response = await api.post('/upload_file', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'X-CSRFToken': getCookie('csrftoken')
@@ -99,7 +99,7 @@ function App() {
       generateGraph(response.data.categories[0] || "", initialYColumns, "line");
       
       try {
-        const recResponse = await axios.post(`${API_BASE}/get_recommendations`, {
+        const recResponse = await api.post(`/get_recommendations`, {
           columns: response.data.categories
         });
         const mappedRecs = allChartTypes.map(chart => {
@@ -155,7 +155,7 @@ function App() {
     setErrorMessage("");
 
     try {
-      const response = await axios.post(`${API_BASE}/generate_graph`, {
+      const response = await api.post('/generate_graph', {
         graph_type: type,
         x_column: xCol,
         y_columns: yCols,
