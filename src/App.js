@@ -316,6 +316,7 @@ function App() {
                   id="file-upload"
                   onChange={handleFileChange} 
                   accept=".csv,.json,.xlsx"
+                  className="file-uplode-btn"
                 />
                 <label htmlFor="file-upload" className="upload-label">
                   {file ? (
@@ -324,7 +325,7 @@ function App() {
                       <span className="file-size">{(file.size / 1024).toFixed(1)} KB</span>
                     </div>
                   ) : (
-                    "Drag & drop or click to browse"
+                    ""
                   )}
                 </label>
                 <button 

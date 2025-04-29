@@ -108,8 +108,12 @@ body {
   padding: 1.5rem;
   text-align: center;
   margin-bottom: 1rem;
+  margin: 10px;
+  
 }
-
+.file-uplode-btn{
+  margin-right: -61px;
+}
 .upload-btn {
   width: 100%;
   padding: 0.75rem;
@@ -124,6 +128,8 @@ body {
 .upload-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+  margin: 10px;
+  margin-left: 0.5px;
 }
 
 select {
