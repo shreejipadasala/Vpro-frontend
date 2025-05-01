@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import axios from "axios";
 import "./App.css";
-import api from './api'; 
+import api from './api';
 
 axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 axios.defaults.withCredentials = true;
 
-// Add the getCookie function at the top level
 const getCookie = (name) => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -15,7 +14,6 @@ const getCookie = (name) => {
 };
 
 function App() {
-
   const [file, setFile] = useState(null);
   const [graphType, setGraphType] = useState("line");
   const [graphImage, setGraphImage] = useState("");
@@ -34,6 +32,9 @@ function App() {
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [activeTab, setActiveTab] = useState("visualize");
   const [isHolographic, setIsHolographic] = useState(false);
+  const [selectedPoint, setSelectedPoint] = useState(null);
+  const [chartData, setChartData] = useState(null);
+  const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
   
   const chartContainerRef = useRef(null);
   const holographicRef = useRef(null);
@@ -59,7 +60,6 @@ function App() {
     { type: "waterfall", name: "🌊 Hydro Cascade", description: "Sequential data transformation flow" },
     { type: "combo", name: "⚡ Fusion Chart", description: "Hybrid data visualization matrix" },
     { type: "stock", name: "📈 Quantum Ticker", description: "Temporal financial data streams" },
-    { type: "3d", name: "🛸 3D Hologram", description: "Multi-dimensional data projection" }
   ];
 
   const handleFileChange = (e) => {
@@ -78,6 +78,8 @@ function App() {
     setGraphImage("");
     setCategories([]);
     setRecommendations([]);
+    setSelectedPoint(null);
+    setChartData(null);
     
     const formData = new FormData();
     formData.append("file", file);
@@ -122,6 +124,122 @@ function App() {
     }
   };
 
+  const generateGraph = async (xCol, yCols, type, download = false) => {
+    if (!xCol || typeof xCol !== 'string') {
+      setErrorMessage("Please select a valid X-axis column");
+      return;
+    }
+  
+    if (!Array.isArray(yCols) || yCols.length === 0) {
+      setErrorMessage("Please select at least one Y-axis column");
+      return;
+    }
+  
+    if (!type || typeof type !== 'string') {
+      setErrorMessage("Please select a valid chart type");
+      return;
+    }
+  
+    setIsLoading(true);
+    setErrorMessage("");
+    setSelectedPoint(null);
+  
+    try {
+      const payload = {
+        graph_type: type,
+        x_column: xCol,
+        y_columns: yCols,
+        colors: colors,
+        color_all: applyAll,
+        download: download
+      };
+
+      const response = await api.post('/generate_graph', payload, {
+        responseType: download ? 'blob' : 'json',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (download) {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${type}_chart.png`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } else {
+        if (response.data.graph) {
+          setGraphImage(`data:image/png;base64,${response.data.graph}`);
+          setChartData(response.data.chart_data);
+          setScale(1);
+          setPosition({ x: 0, y: 0 });
+        }
+      }
+    } catch (error) {
+      console.error("API Error Details:", {
+        message: error.message,
+        response: error.response?.data,
+        config: error.config
+      });
+  
+      let errorMessage = "An error occurred while generating the graph";
+      if (error.response) {
+        errorMessage = error.response.data?.error || errorMessage;
+      } else if (error.request) {
+        errorMessage = "No response received from server";
+      }
+  
+      setErrorMessage(`❌ ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleChartClick = (e) => {
+    if (!chartData || !graphImage) return;
+
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    // Get click position relative to container
+    const rect = container.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    setClickPosition({ x: clickX, y: clickY });
+
+    // Adjust for scale and position
+    const adjustedX = (clickX - position.x) / scale;
+    const adjustedY = (clickY - position.y) / scale;
+
+    // Find the closest data point
+    let closestPoint = null;
+    let minDistance = Infinity;
+
+    chartData.forEach(series => {
+      series.data.forEach(point => {
+        // Simplified distance calculation - adjust based on your needs
+        const distance = Math.sqrt(
+          Math.pow(adjustedX - (point.xPos || 0), 2) + 
+          Math.pow(adjustedY - (point.yPos || 0), 2)
+        );
+
+        if (distance < minDistance && distance < 30) { // 30px threshold
+          minDistance = distance;
+          closestPoint = {
+            ...point,
+            series: series.name,
+            color: series.color || '#328e6e'
+          };
+        }
+      });
+    });
+
+    setSelectedPoint(closestPoint);
+  };
+
   const handleXColumnChange = (e) => {
     const newXColumn = e.target.value;
     setXColumn(newXColumn);
@@ -143,53 +261,6 @@ function App() {
       }
       return updatedColors;
     });
-  };
-
-  const generateGraph = async (xCol, yCols, type, download = false) => {
-    if (!xCol || yCols.length === 0) {
-      setErrorMessage("Please select both X and Y columns");
-      return;
-    }
-    
-    setIsLoading(true);
-    setErrorMessage("");
-
-    try {
-      const response = await api.post('/generate_graph', {
-        graph_type: type,
-        x_column: xCol,
-        y_columns: yCols,
-        colors: colors,
-        color_all: applyAll,
-        download: download
-      }, {
-        responseType: download ? 'blob' : 'json',
-        headers: {
-          'X-CSRFToken': getCookie('csrftoken')
-        }
-      });
-
-      if (download) {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `${type}_chart.png`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      } else {
-        if (response.data.graph) {
-          setGraphImage(`data:image/png;base64,${response.data.graph}`);
-          setScale(1);
-          setPosition({ x: 0, y: 0 });
-        }
-      }
-    } catch (error) {
-      console.error("Error generating graph:", error);
-      setErrorMessage(error.response?.data?.error || "❌ Something went wrong while generating the graph.");
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleDownload = () => {
@@ -263,7 +334,7 @@ function App() {
           <h1>
             <span className="logo-icon">🔮</span>
             <span className="logo-text">Viz Pro</span>
-            <span className="tagline">Data Projection</span>  
+            <span className="tagline">Interactive Data Projection</span>  
           </h1>
           
           <div className="mode-toggle">
@@ -470,10 +541,10 @@ function App() {
                     {yColumns.map((column, index) => (
                       <div key={index} className="color-item">
                         <div className="color-preview" 
-                             style={{ 
-                               backgroundColor: colors[index] || defaultColors[index % defaultColors.length],
-                               boxShadow: `0 0 10px ${colors[index] || defaultColors[index % defaultColors.length]}`
-                             }}>
+                            style={{ 
+                              backgroundColor: colors[index] || defaultColors[index % defaultColors.length],
+                              boxShadow: `0 0 10px ${colors[index] || defaultColors[index % defaultColors.length]}`
+                            }}>
                         </div>
                         <select
                           value={colors[index] || defaultColors[index % defaultColors.length]}
@@ -518,7 +589,7 @@ function App() {
             {graphImage ? (
               <>
                 <div className="visualization-header">
-                  <h2>Projection Output</h2>
+                  <h2>Interactive Projection</h2>
                   <div className="visualization-controls">
                     <button className="control-btn" onClick={resetView}>
                       <span className="control-icon">🔄</span>
@@ -547,6 +618,7 @@ function App() {
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
+                  onClick={handleChartClick}
                   style={{ 
                     cursor: isDragging ? 'grabbing' : 'grab',
                     transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
@@ -566,12 +638,46 @@ function App() {
                     className={`visualization-image ${isHolographic ? 'holographic' : ''}`}
                   />
                 </div>
+
+                {selectedPoint && (
+                  <div 
+                    className="point-info-modal"
+                    style={{
+                      left: `${clickPosition.x + 20}px`,
+                      top: `${clickPosition.y + 20}px`
+                    }}
+                  >
+                    <div className="point-info-content">
+                      <button 
+                        className="close-point-info"
+                        onClick={() => setSelectedPoint(null)}
+                      >
+                        ×
+                      </button>
+                      <h3>Data Point Details</h3>
+                      <div className="point-info-row">
+                        <span className="point-info-label">Series:</span>
+                        <span className="point-info-value" style={{ color: selectedPoint.color }}>
+                          {selectedPoint.series}
+                        </span>
+                      </div>
+                      <div className="point-info-row">
+                        <span className="point-info-label">X Value:</span>
+                        <span className="point-info-value">{selectedPoint.x}</span>
+                      </div>
+                      <div className="point-info-row">
+                        <span className="point-info-label">Y Value:</span>
+                        <span className="point-info-value">{selectedPoint.y}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div className="empty-state">
                 <div className="empty-icon">🔮</div>
                 <h3>No Active Data Stream</h3>
-                <p>Upload a dataset to begin holographic projection</p>
+                <p>Upload a dataset to begin interactive projection</p>
                 <div className="empty-animation">
                   <div className="particle"></div>
                   <div className="particle"></div>
