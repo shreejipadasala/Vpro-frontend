@@ -31,7 +31,7 @@ function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [activeTab, setActiveTab] = useState("visualize");
-  const [isHolographic, setIsHolographic] = useState(false);
+  const [isHolographic] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [chartData, setChartData] = useState(null);
   const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
@@ -47,21 +47,91 @@ function App() {
   ], []);
 
   const allChartTypes = [
-    { type: "line", name: "〰️ Quantum Line", description: "Temporal data streams visualization" },
-    { type: "bar", name: "▮▮ Nano Bars", description: "Molecular-level comparison matrices" },
-    { type: "pie", name: "⊛ Holographic Pie", description: "Sectoral energy distribution mapping" },
-    { type: "area", name: "◬ Topographic Area", description: "Volumetric data terrain modeling" },
-    { type: "scatter", name: "⏺ Photon Scatter", description: "Particle correlation visualization" },
-    { type: "histogram", name: "▯▯ Frequency Matrix", description: "Data wave distribution analysis" },
-    { type: "box", name: "⬛ Quantum Box", description: "Multi-dimensional data containment" },
-    { type: "violin", name: "🎻 Sonic Violin", description: "Harmonic data resonance patterns" },
-    { type: "funnel", name: "⏳ Temporal Funnel", description: "Data flow convergence visualization" },
-    { type: "sunburst", name: "☀️ Solar Flare", description: "Radial data energy mapping" },
-    { type: "waterfall", name: "🌊 Hydro Cascade", description: "Sequential data transformation flow" },
-    { type: "combo", name: "⚡ Fusion Chart", description: "Hybrid data visualization matrix" },
-    { type: "stock", name: "📈 Quantum Ticker", description: "Temporal financial data streams" },
-  ];
-
+  { 
+    type: "line", 
+    name: "Line Chart", 
+    description: "Shows trends over time or categories",
+    icon: "📈" 
+  },
+  { 
+    type: "bar", 
+    name: "Bar Chart", 
+    description: "Compares quantities across categories",
+    icon: "📊" 
+  },
+  { 
+    type: "pie", 
+    name: "Pie Chart", 
+    description: "Shows proportions of a whole",
+    icon: "🥧" 
+  },
+  { 
+    type: "area", 
+    name: "Area Chart", 
+    description: "Shows cumulative totals over time",
+    icon: "🌄" 
+  },
+  { 
+    type: "scatter", 
+    name: "Scatter Plot", 
+    description: "Shows relationships between variables",
+    icon: "✨" 
+  },
+  { 
+    type: "histogram", 
+    name: "Histogram", 
+    description: "Shows distribution of numerical data",
+    icon: "📋" 
+  },
+  { 
+    type: "box", 
+    name: "Box Plot", 
+    description: "Shows statistical distribution",
+    icon: "📦" 
+  },
+  { 
+    type: "violin", 
+    name: "Violin Plot", 
+    description: "Combines box plot with density",
+    icon: "🎻" 
+  },
+  { 
+    type: "funnel", 
+    name: "Funnel Chart", 
+    description: "Shows stages in a process",
+    icon: "🔄" 
+  },
+  { 
+    type: "sunburst", 
+    name: "Sunburst Chart", 
+    description: "Hierarchical data visualization",
+    icon: "☀️" 
+  },
+  { 
+    type: "waterfall", 
+    name: "Waterfall Chart", 
+    description: "Shows cumulative effect",
+    icon: "🌊" 
+  },
+  { 
+    type: "combo", 
+    name: "Combo Chart", 
+    description: "Combines multiple chart types",
+    icon: "🔄" 
+  },
+  { 
+    type: "stock", 
+    name: "Stock Chart", 
+    description: "Shows financial data trends",
+    icon: "💹" 
+  },
+  { 
+    type: "3d", 
+    name: "3D Chart", 
+    description: "Three-dimensional visualization",
+    icon: "🛸" 
+  }
+];
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     setErrorMessage("");
@@ -329,26 +399,13 @@ function App() {
     <div className="app-container">
       <div className="particle-background"></div>
       
-      <div className={`main-container ${isHolographic ? 'holographic-mode' : ''}`}>
+      <div className={`main-container`}>
         <div className="header">
           <h1>
             <span className="logo-icon">🔮</span>
-            <span className="logo-text">Viz Pro</span>
-            <span className="tagline">Interactive Data Projection</span>  
+            <span className="logo-text">Data</span>
+            <span className="tagline">Visualization</span>  
           </h1>
-          
-          <div className="mode-toggle">
-            <label className="holographic-switch">
-              <input 
-                type="checkbox" 
-                checked={isHolographic}
-                onChange={() => setIsHolographic(!isHolographic)}
-              />
-              <span className="slider">
-                <span className="holographic-label">HOLO</span>
-                <span className="normal-label">NORM</span>
-              </span>
-            </label>
           </div>
         </div>
 
@@ -359,18 +416,7 @@ function App() {
           >
             🌌 Visualize
           </button>
-          <button 
-            className={`tab ${activeTab === "analyze" ? "active" : ""}`}
-            onClick={() => setActiveTab("analyze")}
-          >
-            🔍 Analyze
-          </button>
-          <button 
-            className={`tab ${activeTab === "export" ? "active" : ""}`}
-            onClick={() => setActiveTab("export")}
-          >
-            🚀 Export
-          </button>
+          
         </div>
 
         <div className="app-content">
@@ -471,21 +517,7 @@ function App() {
                     <span className="parameter-icon">🖌️</span>
                     Visualization Matrix
                   </label>
-                  <div className="visualization-grid">
-                    {allChartTypes.slice(0, 6).map((chart) => (
-                      <div 
-                        key={chart.type}
-                        className={`visualization-option ${graphType === chart.type ? 'active' : ''}`}
-                        onClick={() => {
-                          setGraphType(chart.type);
-                          generateGraph(xColumn, yColumns, chart.type);
-                        }}
-                      >
-                        <div className="option-icon">{chart.name.split(' ')[0]}</div>
-                        <div className="option-name">{chart.name.split(' ').slice(1).join(' ')}</div>
-                      </div>
-                    ))}
-                  </div>
+                  visualization-grid"
                   <div className="more-options">
                     <button 
                       className="more-btn"
@@ -510,9 +542,9 @@ function App() {
                             setShowRecommendations(false);
                           }}
                         >
-                          <div className="recommendation-icon">{chart.name.split(' ')[0]}</div>
+                          <div className="recommendation-icon">{chart.icon}</div>
                           <div className="recommendation-content">
-                            <h4>{chart.name.split(' ').slice(1).join(' ')}</h4>
+                            <h4>{chart.name}</h4>
                             <p>{chart.description}</p>
                             {chart.confidence > 0 && (
                               <div className="confidence-meter">
@@ -535,7 +567,7 @@ function App() {
                 <div className="color-controls">
                   <label className="color-label">
                     <span className="parameter-icon">🌈</span>
-                    Photon Spectrum
+                    Chart colors
                   </label>
                   <div className="color-grid">
                     {yColumns.map((column, index) => (
@@ -592,22 +624,22 @@ function App() {
                   <h2>Interactive Projection</h2>
                   <div className="visualization-controls">
                     <button className="control-btn" onClick={resetView}>
-                      <span className="control-icon">🔄</span>
+                      <span className="control-icon">🔄</span>  
                       Reset View
                     </button>
                     <button className="control-btn" onClick={handleDownload}>
                       <span className="control-icon">💾</span>
                       Download
                     </button>
-                    <div className="zoom-controls">
+                    {/* <div className="zoom-controls">
                       <button className="zoom-btn" onClick={() => setScale(prev => Math.max(0.5, prev - 0.1))}>
-                        <span className="control-icon">➖</span>
-                      </button>
-                      <span className="zoom-level">{(scale * 100).toFixed(0)}%</span>
+                        <span className="control-icon">➖</span> */}
+                      {/* </button> */}
+                      {/* <span className="zoom-level">{(scale * 100).toFixed(0)}%</span>
                       <button className="zoom-btn" onClick={() => setScale(prev => Math.min(3, prev + 0.1))}>
                         <span className="control-icon">➕</span>
-                      </button>
-                    </div>
+                      </button> */}
+                    {/* </div> */}
                   </div>
                 </div>
                 
@@ -688,7 +720,7 @@ function App() {
           </div>
         </div>
       </div>
-    </div>
+   
   );
 }
 
